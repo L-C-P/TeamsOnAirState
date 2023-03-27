@@ -1,24 +1,11 @@
-# teamsonair
+<p align="center">
+  <img src="Assets/icon-web.png" width="128" height="128" alt="logo" />
+</p>
 
-## Project setup
-```
-npm install
-```
+# MS-Teams On-Air state
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+#### [Teams](https://www.microsoft.com/en-us/microsoft-teams/free) state.
 
-### Compiles and minifies for production
-```
-npm run build
-```
+## Credits
 
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+Developed by [Denis Sowa](https://github.com/L-C-P) with :heart:
