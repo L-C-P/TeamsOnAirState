@@ -1,75 +1,103 @@
 <template>
-  <div class="border" :class="{ inmeeting: meetingState?.isInMeeting}" v-if="connected">
-    <div class="on-air">On Air</div>
-    <div class="toggles">
-      <div class="toggle-on" v-if="!meetingState?.isMuted && meetingState?.isInMeeting">Mic on</div>
-      <div class="toggle-off" v-if="meetingState?.isMuted || !meetingState?.isInMeeting">Mic off</div>
-      <div class="toggle-on" v-if="meetingState?.isCameraOn">Cam on</div>
-      <div class="toggle-off" v-if="!meetingState?.isCameraOn">Cam off</div>
-    </div>
-  </div>
+    <on-air-sign :connected="connected"
+                 :is-camera-on="meetingState?.isCameraOn"
+                 :is-in-meeting="meetingState?.isInMeeting"
+                 :is-muted="meetingState?.isMuted"/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import {onBeforeUnmount, onMounted, ref} from "vue";
 import {TeamsWsResponse} from "@/abstract/TeamsWsResponse";
 import {MeetingState} from "@/abstract/MeetingState";
 import {TeamsWsRequest} from "@/abstract/TeamsWsRequest";
+import OnAirSign from "@/components/OnAirSign.vue";
 
-const socket = new WebSocket('ws://localhost:8124?token=2bc6cbe8-1ef9-4150-970b-e68e47540de5&protocol-version=1.0.0&manufacturer=Denis%20Sowa&device=Browser&app=OnAir&app-version=1.0.0')
+const socket = ref<WebSocket | null>();
 const connected = ref(false);
 const meetingState = ref<MeetingState | null>(null);
+const teamsURL = ref<string | null>();
+const teamsToken = ref<string | null>();
+const timeoutHandler = ref<number | null>();
 
 onMounted(async () => {
-  socket.onopen = async (message) => {
-    console.log('OPEN: ' + message);
-    connected.value = true;
-  };
-
-  socket.onclose = async (message) => {
-    console.log('CLOSED: ' + message);
-    connected.value = false;
-  };
-
-  socket.onerror = async (message) => {
-    console.error('ERROR: ' + message);
-  };
-
-  socket.onmessage = async (message) => {
-    console.log(message.data);
-    const res = JSON.parse(message.data) as TeamsWsResponse;
-    meetingState.value = res.meetingUpdate.meetingState;
-    // meetingState.value.isInMeeting = true;
-  };
-
-
-  setTimeout(async () => {
-    const req: TeamsWsRequest = {
-      apiVersion: '1.0.0',
-      action: 'query-meeting-state',
-      manufacturer: 'Denis Sowa',
-      device: 'Browser',
-      timestamp: 0,
-      service: 'query-meeting-state'
-    };
-
-    socket.send(JSON.stringify(req));
-  }, 1000);
+    teamsURL.value = 'localhost';
+    teamsToken.value = '2bc6cbe8-1ef9-4150-970b-e68e47540de5';
+    await connect2Teams();
 })
 
 onBeforeUnmount(async () => {
-  socket.close();
+    if (timeoutHandler.value) {
+        clearTimeout(timeoutHandler.value);
+        timeoutHandler.value = null;
+    }
+
+    await disconnectTeams();
 })
+
+const connect2Teams = async () => {
+    try {
+        if (teamsURL.value && teamsToken.value) {
+            console.log(`Connect to Teams via ${teamsURL.value}`);
+            socket.value = new WebSocket(`ws://${teamsURL.value}:8124?token=${teamsToken.value}&protocol-version=1.0.0&manufacturer=Denis%20Sowa&device=Browser&app=OnAir&app-version=1.0.0`)
+
+            socket.value.onopen = async (message) => {
+                console.log('Connected to Teams');
+                connected.value = true;
+                await requestStatusUpdate();
+            };
+
+            socket.value.onclose = async (message) => {
+                console.log('Connection to Teams closed');
+                connected.value = false;
+                activateReconnect2Teams();
+            };
+
+            socket.value.onerror = async (message) => {
+                console.error('Connection to Teams errored:');
+                console.error(message);
+                activateReconnect2Teams();
+            };
+
+            socket.value.onmessage = async (message) => {
+                console.info(`Received message from Teams: ${message.data}`);
+                const teamsWsResponse = JSON.parse(message.data) as TeamsWsResponse;
+                meetingState.value = teamsWsResponse.meetingUpdate.meetingState;
+            };
+        } else
+            activateReconnect2Teams();
+    } catch (e) {
+        console.error('Connection to Teams error:');
+        console.error(e);
+        activateReconnect2Teams();
+    }
+}
+
+const activateReconnect2Teams = () => {
+    timeoutHandler.value = setTimeout(async () => {
+        await connect2Teams();
+    }, 10000);
+}
+
+const disconnectTeams = async () => {
+    socket.value?.close();
+    socket.value = null;
+}
+
+const requestStatusUpdate = async () => {
+    const req: TeamsWsRequest = {
+        apiVersion: '1.0.0',
+        action: 'query-meeting-state',
+        manufacturer: 'Denis Sowa',
+        device: 'Browser',
+        timestamp: 0,
+        service: 'query-meeting-state'
+    };
+
+    socket.value?.send(JSON.stringify(req));
+}
 </script>
 
 <style lang="scss">
-// https://css-tricks.com/how-to-create-neon-text-with-css/
-@font-face {
-  font-family: "KosanNonCommercial";
-  src: local("KosanNonCommercial"),
-  url("./../public/KosanNonCommercial.otf") format("opentype");
-}
-
 body, html {
   height: 100%;
   margin: 0;
@@ -78,105 +106,10 @@ body, html {
 }
 
 #app {
-  font-family: KosanNonCommercial, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: 100%;
   display: flex;
-  text-align: center;
-}
-
-.border {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin: 2rem;
-  border: .5rem solid #666;
-  border-radius: 2rem;
-}
-
-.on-air {
-  font-size: min(20vw, 40vh);
-  color: #222;
-  text-transform: uppercase;
-}
-
-.toggles {
-  display: flex;
-  gap: min(11vw, 20vh);
-  padding-top: calc(min(6vw, 8vh) / 2);
-}
-
-.toggle-on, .toggle-off {
-  font-size: min(6vw, 13vh);
-  color: #222;
-  text-transform: uppercase;
-  display: inline-block;
-
-}
-
-.inmeeting {
-  &.border {
-    border-color: #fff;
-    box-shadow: 0 0 .2rem #fff,
-    0 0 .2rem #fff,
-    0 0 2rem #f00,
-    0 0 0.8rem #f00,
-    0 0 2.8rem #f00,
-    inset 0 0 2rem #f00;
-  }
-
-  .on-air {
-    color: #fff;
-    animation: flicker 1.5s infinite alternate;
-  }
-
-  .toggle-on {
-    color: #fff;
-    text-shadow: 0 0 4px #fff,
-    0 0 11px #fff,
-    0 0 19px #fff,
-    0 0 40px #0f0,
-    0 0 80px #0f0,
-    0 0 90px #0f0,
-    0 0 100px #0f0,
-    0 0 150px #0f0;
-  }
-
-  .toggle-off {
-    color: #fff;
-    text-shadow: 0 0 4px #fff,
-    0 0 11px #fff,
-    0 0 19px #fff,
-    0 0 40px #f00,
-    0 0 80px #f00,
-    0 0 90px #f00,
-    0 0 100px #f00,
-    0 0 150px #f00;
-  }
-}
-
-@keyframes flicker {
-  0%, 18%, 22%, 25%, 53%, 57%, 100% {
-    text-shadow: 0 0 4px #fff,
-    0 0 11px #fff,
-    0 0 19px #fff,
-    0 0 40px #f00,
-    0 0 80px #f00,
-    0 0 90px #f00,
-    0 0 100px #f00,
-    0 0 150px #f00;
-  }
-  20%, 24%, 55% {
-    text-shadow: none;
-  }
-}
-
-@media screen and (prefers-reduced-motion) {
-  .on-air {
-    animation: none;
-  }
 }
 </style>
