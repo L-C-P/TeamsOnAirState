@@ -1,10 +1,22 @@
 // https://css-tricks.com/how-to-create-neon-text-with-css/
 
 .style-neon1 {
+  --colorBorder: #f00;
+  --colorOnAir: #f00;
+  --colorOn: #0f0;
+  --colorOff: #f00;
+
   @font-face {
     font-family: "Kosan";
     src: local("KosanNonCommercial"),
     url("@/assets/styles/KosanNonCommercial.otf") format("opentype");
+  }
+
+  &.no-connection {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   &.border {
@@ -17,24 +29,32 @@
     margin: 2rem;
     border: .5rem solid #666;
     border-radius: 2rem;
-  }
 
-  .on-air {
-    font-size: min(20vw, 40vh);
-    color: #222;
-    text-transform: uppercase;
-  }
+    & .on-air {
+      font-size: min(20vw, 40vh);
+      color: #222;
+      text-transform: uppercase;
+    }
 
-  .toggles {
-    display: flex;
-    gap: min(11vw, 20vh);
-    padding-top: calc(min(6vw, 8vh) / 2);
-  }
+    & .toggles {
+      display: flex;
+      gap: min(11vw, 20vh);
+      padding-top: calc(min(6vw, 8vh) / 2);
 
-  .toggle-on, .toggle-off {
-    font-size: min(6vw, 13vh);
-    color: #222;
-    text-transform: uppercase;
+      & div {
+        font-size: min(6vw, 13vh);
+        height: min(6vw, 13vh);
+        color: transparent;
+
+        & .toggle-on, .toggle-off {
+          position: relative;
+          top: max(-6vw, -13vh);
+          font-size: min(6vw, 13vh);
+          color: #222;
+          text-transform: uppercase;
+        }
+      }
+    }
   }
 
   &.in-meeting {
@@ -42,10 +62,10 @@
       border-color: #fff;
       box-shadow: 0 0 .2rem #fff,
       0 0 .2rem #fff,
-      0 0 2rem #f00,
-      0 0 0.8rem #f00,
-      0 0 2.8rem #f00,
-      inset 0 0 2rem #f00;
+      0 0 2rem var(--colorBorder),
+      0 0 0.8rem var(--colorBorder),
+      0 0 2.8rem var(--colorBorder),
+      inset 0 0 2rem var(--colorBorder);
     }
 
     .on-air {
@@ -53,11 +73,11 @@
       text-shadow: 0 0 4px #fff,
       0 0 11px #fff,
       0 0 19px #fff,
-      0 0 40px #f00,
-      0 0 80px #f00,
-      0 0 90px #f00,
-      0 0 100px #f00,
-      0 0 150px #f00;
+      0 0 40px var(--colorOnAir),
+      0 0 80px var(--colorOnAir),
+      0 0 90px var(--colorOnAir),
+      0 0 100px var(--colorOnAir),
+      0 0 150px var(--colorOnAir);
 
       animation: flicker 1.5s infinite alternate;
     }
@@ -67,38 +87,39 @@
       text-shadow: 0 0 4px #fff,
       0 0 11px #fff,
       0 0 19px #fff,
-      0 0 40px #0f0,
-      0 0 80px #0f0,
-      0 0 90px #0f0,
-      0 0 100px #0f0,
-      0 0 150px #0f0;
+      0 0 40px var(--colorOn),
+      0 0 80px var(--colorOn),
+      0 0 90px var(--colorOn),
+      0 0 100px var(--colorOn),
+      0 0 150px var(--colorOn);
     }
 
     .toggle-off {
-      color: #fff;
       text-shadow: 0 0 4px #fff,
       0 0 11px #fff,
       0 0 19px #fff,
-      0 0 40px #f00,
-      0 0 80px #f00,
-      0 0 90px #f00,
-      0 0 100px #f00,
-      0 0 150px #f00;
+      0 0 40px var(--colorOff),
+      0 0 80px var(--colorOff),
+      0 0 90px var(--colorOff),
+      0 0 100px var(--colorOff),
+      0 0 150px var(--colorOff);
     }
   }
 
   @keyframes flicker {
     0%, 18%, 22%, 25%, 53%, 57%, 100% {
+      color: #fff;
       text-shadow: 0 0 4px #fff,
       0 0 11px #fff,
       0 0 19px #fff,
-      0 0 40px #f00,
-      0 0 80px #f00,
-      0 0 90px #f00,
-      0 0 100px #f00,
-      0 0 150px #f00;
+      0 0 40px var(--colorOnAir),
+      0 0 80px var(--colorOnAir),
+      0 0 90px var(--colorOnAir),
+      0 0 100px var(--colorOnAir),
+      0 0 150px var(--colorOnAir);
     }
     20%, 24%, 55% {
+      color: transparent;
       text-shadow: none;
     }
   }
